@@ -52,54 +52,48 @@ export const SignUp: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
+  if (password !== confirmPassword) {
+    setError('Passwords do not match');
+    return;
+  }
+  if (!country) {
+    setError('Please select a country');
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    // Payload with full data
+    const payload = { fullName, email, password, country };
+
+   const response = await fetch('http://localhost:5001/api/register', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+});
+
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert(result.message || 'Account created successfully!');
+      onSwitch(); // go to Sign In
+    } else {
+      setError(result.message || 'Registration failed');
     }
-    if (!country) {
-      setError('Please select a country');
-      return;
-    }
+  } catch (err) {
+    console.error(err);
+    setError('Something went wrong while connecting to the server.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-    setIsLoading(true);
-
-    try {
-      // Payload with full data
-      const payload = { fullName, email, password, country };
-
-      const response = await fetch('http://localhost/expense_management/Signup.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        mode: 'cors'
-      });
-
-      const result = await (async () => {
-        try {
-          return await response.json();
-        } catch {
-          const text = await response.text();
-          throw new Error(text || 'Invalid server response');
-        }
-      })();
-
-      if (result.status === 'success') {
-        alert(result.message);
-        onSwitch(); // go to Sign In
-      } else {
-        setError(result.message || 'Registration failed');
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Something went wrong while connecting to the server.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">

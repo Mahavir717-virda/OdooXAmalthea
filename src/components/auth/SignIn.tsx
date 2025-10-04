@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
 
 export const SignIn: React.FC<{ onSwitch: () => void; onForgotPassword: () => void }> = ({
   onSwitch,
@@ -9,21 +8,34 @@ export const SignIn: React.FC<{ onSwitch: () => void; onForgotPassword: () => vo
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  setIsLoading(true);
 
-    try {
-      await signIn(email, password);
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
-    } finally {
-      setIsLoading(false);
+  try {
+    const res = await fetch("http://localhost:5001/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.message);
     }
-  };
+
+    // Optional: store user info in localStorage or context
+    localStorage.setItem('user', JSON.stringify(data.user));
+    alert('Login successful!');
+  } catch (err: any) {
+    setError(err.message || 'Failed to sign in');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -40,9 +52,7 @@ export const SignIn: React.FC<{ onSwitch: () => void; onForgotPassword: () => vo
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-gray-300 text-sm font-semibold mb-2">
-                Email Address
-              </label>
+              <label className="block text-gray-300 text-sm font-semibold mb-2">Email Address</label>
               <input
                 type="email"
                 value={email}
@@ -54,9 +64,7 @@ export const SignIn: React.FC<{ onSwitch: () => void; onForgotPassword: () => vo
             </div>
 
             <div>
-              <label className="block text-gray-300 text-sm font-semibold mb-2">
-                Password
-              </label>
+              <label className="block text-gray-300 text-sm font-semibold mb-2">Password</label>
               <input
                 type="password"
                 value={password}
