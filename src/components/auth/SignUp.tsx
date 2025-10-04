@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Country } from '../../types';
 
+type RestCountry = {
+  name?: { common?: string } | string;
+  cca2?: string;
+  cca3?: string;
+  currencies?: Record<string, unknown>;
+};
+
 export const SignUp: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -17,19 +24,25 @@ export const SignUp: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
 
   const loadCountries = async () => {
     try {
-      const response = await fetch('https://restcountries.com/v3.1/all');
+      const response = await fetch("https://restcountries.com/v3.1/all?fields=name,currencies,cca2");
       const data = await response.json();
 
-      const countryList: Country[] = data.map((c: any) => ({
-        name: c.name.common,
-        code: c.cca2,
-        currency: Object.keys(c.currencies || {})[0] || 'USD',
-      })).sort((a, b) => a.name.localeCompare(b.name));
+      const countryList: Country[] = Array.isArray(data)
+        ? (data as RestCountry[]).map((c) => ({
+            name: (typeof c.name === 'string' ? c.name : c?.name?.common) || 'Unknown',
+            code: c?.cca2 || c?.cca3 || 'UN',
+            currency: Object.keys(c?.currencies || {})[0] || 'USD',
+          }))
+          .filter((x) => x.name && x.code)
+          .sort((a, b) => a.name.localeCompare(b.name))
+        : [];
 
-      setCountries(countryList.length ? countryList : [
-        { code: 'IN', name: 'India', currency: 'INR' },
-        { code: 'US', name: 'United States', currency: 'USD' },
-      ]);
+      setCountries(countryList.length
+        ? countryList
+        : [
+          { code: 'IN', name: 'India', currency: 'INR' },
+          { code: 'US', name: 'United States', currency: 'USD' },
+        ]);
     } catch (err) {
       console.error('Error fetching countries:', err);
       setCountries([
@@ -55,26 +68,30 @@ export const SignUp: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
     setIsLoading(true);
 
     try {
-      const formData = new URLSearchParams();
-      formData.append('fullName', fullName);
-      formData.append('email', email);
-      formData.append('password', password);
-      formData.append('country', country);
+      // Payload with full data
+      const payload = { fullName, email, password, country };
 
-      const response = await fetch('http://localhost/expense/Signup.php', {
+      const response = await fetch('http://localhost/expense_management/Signup.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString(),
-        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        mode: 'cors'
       });
 
-      const result = await response.json();
+      const result = await (async () => {
+        try {
+          return await response.json();
+        } catch {
+          const text = await response.text();
+          throw new Error(text || 'Invalid server response');
+        }
+      })();
 
       if (result.status === 'success') {
         alert(result.message);
-        onSwitch(); // switch to login
+        onSwitch(); // go to Sign In
       } else {
-        setError(result.message);
+        setError(result.message || 'Registration failed');
       }
     } catch (err) {
       console.error(err);
@@ -132,7 +149,7 @@ export const SignUp: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
               >
                 <option value="">Select your country</option>
                 {countries.map((c) => (
-                  <option key={c.code} value={c.code}>
+                  <option key={c.code} value={c.name}>
                     {c.name} ({c.currency})
                   </option>
                 ))}
