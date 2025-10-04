@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const SignIn: React.FC<{ onSwitch: () => void; onForgotPassword: () => void }> = ({
   onSwitch,
   onForgotPassword
 }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -28,8 +30,9 @@ const handleSubmit = async (e: React.FormEvent) => {
     }
 
     // Optional: store user info in localStorage or context
+    localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
-    alert('Login successful!');
+    navigate('/dashboard');
   } catch (err: any) {
     setError(err.message || 'Failed to sign in');
   } finally {

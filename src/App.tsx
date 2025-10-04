@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SignIn } from './components/auth/SignIn';
 import { SignUp } from './components/auth/SignUp';
@@ -24,13 +25,13 @@ function AuthFlow() {
   );
 }
 
-function MainApp() {
+function ProtectedApp() {
   const { user } = useAuth();
   const [activeView, setActiveView] = useState('dashboard');
   const [showSubmission, setShowSubmission] = useState(false);
 
   if (!user) {
-    return <AuthFlow />;
+    return <Navigate to="/" replace />;
   }
 
   const renderContent = () => {
@@ -92,7 +93,10 @@ function MainApp() {
 function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <Routes>
+        <Route path="/" element={<AuthFlow />} />
+        <Route path="/dashboard" element={<ProtectedApp />} />
+      </Routes>
     </AuthProvider>
   );
 }

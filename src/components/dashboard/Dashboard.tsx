@@ -1,67 +1,69 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { TrendingUp, DollarSign, FileText, Clock, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const stats = [
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://localhost:5001/api/dashboard', {
+          headers: {
+            'x-auth-token': token || ''
+          }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setDashboardData(data.data);
+        } else {
+          console.error(data.message);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const stats = dashboardData ? [
     {
       label: 'Total Expenses',
-      value: '$12,450',
-      change: '+12.5%',
+      value: `$${dashboardData.totalExpenses.toLocaleString()}`,
+      change: '+12.5%', // This can be calculated on the backend
       icon: DollarSign,
       color: 'blue',
     },
     {
       label: 'Pending Approvals',
-      value: '8',
-      change: '-3',
+      value: dashboardData.pendingApprovals,
+      change: '-3', // This can be calculated on the backend
       icon: Clock,
       color: 'yellow',
     },
     {
       label: 'Approved This Month',
-      value: '45',
-      change: '+8.2%',
+      value: dashboardData.approvedThisMonth,
+      change: '+8.2%', // This can be calculated on the backend
       icon: FileText,
       color: 'green',
     },
     {
       label: 'Active Users',
-      value: '24',
-      change: '+2',
+      value: '24', // This should come from the backend
+      change: '+2', // This can be calculated on the backend
       icon: Users,
       color: 'purple',
     },
-  ];
+  ] : [];
 
-  const recentExpenses = [
-    {
-      id: '1',
-      employee: 'John Doe',
-      category: 'Travel',
-      amount: 250.0,
-      date: '2025-10-03',
-      status: 'pending',
-    },
-    {
-      id: '2',
-      employee: 'Jane Smith',
-      category: 'Meals',
-      amount: 45.5,
-      date: '2025-10-02',
-      status: 'approved',
-    },
-    {
-      id: '3',
-      employee: 'Mike Johnson',
-      category: 'Office Supplies',
-      amount: 120.0,
-      date: '2025-10-01',
-      status: 'pending',
-    },
-  ];
+  const recentExpenses = dashboardData ? dashboardData.recentExpenses : [];
 
   const getColorClasses = (color: string) => {
     const colors = {
@@ -83,6 +85,10 @@ export const Dashboard: React.FC = () => {
         return 'bg-yellow-900 text-yellow-200 border-yellow-700';
     }
   };
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a spinner component
+  }
 
   return (
     <div className="space-y-6">
@@ -126,13 +132,13 @@ export const Dashboard: React.FC = () => {
           <div className="space-y-4">
             {recentExpenses.map(expense => (
               <div
-                key={expense.id}
+                key={expense._id}
                 className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
               >
                 <div className="flex-1">
-                  <div className="font-semibold text-white mb-1">{expense.employee}</div>
+                  <div className="font-semibold text-white mb-1">{expense.description}</div>
                   <div className="text-sm text-gray-400">
-                    {expense.category} • {expense.date}
+                    {expense.category} • {new Date(expense.date).toLocaleDateString()}
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -155,13 +161,7 @@ export const Dashboard: React.FC = () => {
         <div className="bg-gray-800 rounded-lg border-2 border-gray-700 p-6">
           <h3 className="text-xl font-bold text-white mb-4">Expense Categories Breakdown</h3>
           <div className="space-y-4">
-            {[
-              { name: 'Travel', amount: 5200, percentage: 42 },
-              { name: 'Meals & Entertainment', amount: 2800, percentage: 22 },
-              { name: 'Office Supplies', amount: 1900, percentage: 15 },
-              { name: 'Transportation', amount: 1450, percentage: 12 },
-              { name: 'Other', amount: 1100, percentage: 9 },
-            ].map((category, index) => (
+            {dashboardData && dashboardData.expenseCategories.map((category, index) => (
               <div key={index}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-300 font-medium">{category.name}</span>
@@ -172,7 +172,7 @@ export const Dashboard: React.FC = () => {
                 <div className="w-full bg-gray-700 rounded-full h-2 border border-gray-600">
                   <div
                     className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${category.percentage}%` }}
+                    style={{ width: `${(category.amount / dashboardData.totalExpenses) * 100}%` }}
                   />
                 </div>
               </div>

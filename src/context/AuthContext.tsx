@@ -4,10 +4,7 @@ import { User } from '../types';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string, country: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<void>;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
   }, []);
 
-  const checkAuth = async () => {
+  const checkAuth = () => {
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
@@ -36,70 +33,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('Auth check error:', error);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signIn = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const mockUser: User = {
-        id: '1',
-        email,
-        fullName: 'Demo User',
-        role: 'admin',
-        companyId: '1',
-        mustChangePassword: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setUser(mockUser);
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signUp = async (email: string, password: string, fullName: string, country: string) => {
-    setIsLoading(true);
-    try {
-      const mockUser: User = {
-        id: '1',
-        email,
-        fullName,
-        role: 'admin',
-        companyId: '1',
-        mustChangePassword: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setUser(mockUser);
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signOut = async () => {
+  const signOut = () => {
+    localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
   };
 
-  const updatePassword = async (newPassword: string) => {
-    if (user) {
-      const updatedUser = { ...user, mustChangePassword: false };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut, updatePassword }}>
+    <AuthContext.Provider value={{ user, isLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
